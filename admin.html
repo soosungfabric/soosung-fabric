@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOOSUNG FABRIC — Category Editor</title><link rel="stylesheet" href="style.css"></head>
+<body class="admin-page"><main class="admin-wrap">
+<p class="eyebrow">SOOSUNG FABRIC / CATEGORY EDITOR</p>
+<h1>카테고리 사진 관리</h1>
+<p class="admin-muted">인스타그램 사진의 카테고리를 지정하고, 4개 카테고리 대표 이미지를 설정합니다. 이 화면에서 변경한 내용은 파일을 GitHub에 올린 후에만 실제 쇼룸에 반영됩니다.</p>
+<div class="admin-note"><strong>사용 순서</strong><br>
+① 대표 사진을 선택하고 <b>대표 이미지 다운로드</b>를 눌러 파일을 저장합니다(선택 사항).<br>
+② 아래 인스타그램 사진의 카테고리를 변경합니다.<br>
+③ <b>설정 파일 다운로드</b>를 누릅니다.<br>
+④ GitHub 저장소 최상위에 <b>category-config.json</b> 및 다운로드한 대표 사진을 업로드합니다. 배포가 완료되면 쇼룸에 반영됩니다.<br>
+※ 이 페이지에는 로그인 보호 기능이 없습니다. 누구나 설정을 시험하고 파일을 내려받을 수 있지만, GitHub에 쓰기 권한이 없으면 사이트를 변경할 수 없습니다.</div>
+<h2>1. 대표 이미지 설정</h2>
+<p class="admin-muted">원단 사진을 선택하면 정해진 이름으로 내려받을 수 있습니다. 파일은 GitHub의 <b>최상위 폴더</b>에 업로드하세요. 기존에 GitHub에 올린 이미지가 있다면 경로만 입력해도 됩니다.</p>
+<div class="admin-covers" id="adminCovers"></div>
+<h2>2. 인스타그램 게시물 분류</h2>
+<p class="admin-muted">각 사진에서 카테고리를 선택합니다. '자동 분류'를 선택하면 게시물의 해시태그·설명으로 분류됩니다. 새로 올라오는 게시물도 자동 분류됩니다.</p>
+<div class="admin-toolbar"><input id="adminSearch" placeholder="게시물 검색" aria-label="게시물 검색"><select id="adminFilter" aria-label="카테고리 필터"><option value="all">모든 카테고리</option><option value="knit">KNIT FABRIC</option><option value="jersey">SINGLE JERSEY</option><option value="woven">WOVEN</option><option value="etc">ETC</option></select></div>
+<p class="admin-status" id="adminStatus">게시물을 불러오는 중…</p><div class="admin-posts" id="adminPosts"></div>
+<div class="admin-actions"><button id="downloadConfig" class="admin-primary" type="button">설정 파일 다운로드 (category-config.json)</button><span class="admin-muted">기존 설정 파일을 교체하면 분류 결과가 적용됩니다.</span></div>
+<a class="admin-secondary" href="/" style="display:inline-block;text-decoration:none">쇼룸으로 돌아가기</a>
+</main><script src="admin.js"></script></body></html>

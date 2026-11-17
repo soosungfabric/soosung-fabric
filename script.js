@@ -7,12 +7,56 @@ let fabrics = [];
 let current = 'all';
 let activeImages = [];
 let activeImageIndex = 0;
+let showroomConfig = { covers: {}, assignments: {} };
+const CATEGORY_KEYS = ['knit', 'jersey', 'woven', 'etc'];
+
+function normalizeConfig(data) {
+  const covers = {};
+  const assignments = {};
+  for (const key of CATEGORY_KEYS) {
+    const url = data?.covers?.[key];
+    if (typeof url === 'string' && /^(https:\/\/|[a-zA-Z0-9][a-zA-Z0-9._/-]*$)/.test(url) && !url.includes('..')) covers[key] = url;
+  }
+  if (data?.assignments && typeof data.assignments === 'object') {
+    for (const [id, cat] of Object.entries(data.assignments)) {
+      if (/^\d{5,40}$/.test(id) && CATEGORY_KEYS.includes(cat)) assignments[id] = cat;
+    }
+  }
+  return { covers, assignments };
+}
+
+function applyCategoryCovers() {
+  document.querySelectorAll('.categories .cat[data-filter]').forEach(button => {
+    const url = showroomConfig.covers[button.dataset.filter];
+    button.classList.toggle('has-cover', !!url);
+    if (url) button.style.setProperty('--cover-image', `url(${JSON.stringify(url)})`);
+    else button.style.removeProperty('--cover-image');
+  });
+}
+
+async function loadShowroomConfig() {
+  try {
+    const response = await fetch('/category-config.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Config HTTP ${response.status}`);
+    showroomConfig = normalizeConfig(await response.json());
+  } catch (error) {
+    console.warn('Using default category settings:', error);
+    showroomConfig = { covers: {}, assignments: {} };
+  }
+  applyCategoryCovers();
+}
+
 
 function category(caption) {
   const t = caption.toLowerCase();
-  if (/jacquard|knit|니트|자카드|스웨터/.test(t)) return 'knit';
+  // Explicit tags take priority over incidental words in captions.
+  if (/#(?:single_?jersey|jersey|싱글)(?![\w가-힣])/.test(t)) return 'jersey';
+  if (/#(?:woven|twill|poplin|트윌|평직)(?![\w가-힣])/.test(t)) return 'woven';
+  if (/#(?:knit|jacquard|니트|자카드)(?![\w가-힣])/.test(t)) return 'knit';
+  if (/#(?:etc|기타)(?![\w가-힣])/.test(t)) return 'etc';
   if (/single jersey|jersey|싱글|쭈리|쮸리/.test(t)) return 'jersey';
   if (/woven|twill|poplin|plain weave|직물|트윌|평직/.test(t)) return 'woven';
+  if (/jacquard|knit|니트|자카드|스웨터/.test(t)) return 'knit';
   return 'etc';
 }
 function safeText(value) { return String(value || ''); }
@@ -102,11 +146,11 @@ async function loadInstagram() {
     const response = await fetch('/api/instagram');
     if (!response.ok) throw new Error(`API ${response.status}`);
     const data = await response.json();
-    fabrics = (data.posts || []).map((p, i) => {
+    fabrics = (data.posts || []).filter(p => p && p.id && p.image).map((p, i) => {
       const desc = safeText(p.caption).trim();
       return {
         code: p.id, name: desc.split('\n').find(Boolean)?.slice(0, 65) || `Instagram Post ${i + 1}`,
-        cat: category(desc), desc: desc.slice(0, 240) || 'SOOSUNG FABRIC',
+        cat: showroomConfig.assignments[String(p.id)] || category(desc), desc: desc.slice(0, 240) || 'SOOSUNG FABRIC',
         image: p.image, images: p.images || [], permalink: p.permalink,
         date: p.timestamp ? new Date(p.timestamp).toLocaleDateString('ko-KR') : ''
       };
@@ -119,4 +163,5 @@ async function loadInstagram() {
     if (result) result.textContent = 'Instagram 사진을 불러오지 못했습니다. 관리자에게 문의해 주세요.';
   }
 }
-loadInstagram();
+// Load manual settings before fetching posts so overrides apply immediately.
+loadShowroomConfig().then(loadInstagram);

@@ -3,10 +3,14 @@ const cats = [
   {key:'knit', label:'KNIT FABRIC'}, {key:'jersey', label:'SINGLE JERSEY'},
   {key:'woven', label:'WOVEN'}, {key:'etc', label:'ETC'}
 ];
-let settings = {covers:{}, assignments:{}};
+let settings = {covers:{}, assignments:{}, hero:{mode:'original',image:'',position:'center'}};
 let posts = [];
 const pendingCoverFiles = {};
 const localPreviews = {};
+let pendingHeroFile = null;
+let heroPreviewUrl = null;
+const HERO_MODES = ['original','photo','plain','hidden'];
+const HERO_POSITIONS = ['center','left','right','top','bottom'];
 const $ = selector => document.querySelector(selector);
 function validPath(url) {
   return /^(https:\/\/|[a-zA-Z0-9][a-zA-Z0-9._/-]*$)/.test(url) && !url.includes('..');
@@ -29,6 +33,77 @@ function downloadBlob(blob, filename) {
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
+function getHeroSettings() {
+  const raw = settings.hero && typeof settings.hero === 'object' ? settings.hero : {};
+  return {
+    mode: HERO_MODES.includes(raw.mode) ? raw.mode : 'original',
+    image: typeof raw.image === 'string' && validPath(raw.image) ? raw.image : '',
+    position: HERO_POSITIONS.includes(raw.position) ? raw.position : 'center'
+  };
+}
+function renderHeroEditor() {
+  const hero = getHeroSettings();
+  $('#heroMode').value = hero.mode;
+  $('#heroPath').value = hero.image;
+  $('#heroPosition').value = hero.position;
+  updateHeroPreview();
+}
+function updateHeroPreview() {
+  const mode = $('#heroMode').value;
+  const path = $('#heroPath').value.trim();
+  const preview = $('#heroPreview');
+  const help = $('#heroHelp');
+  const photoFields = $('#heroPhotoFields');
+  photoFields.hidden = mode !== 'photo';
+  preview.className = 'admin-hero-preview mode-' + mode;
+  preview.style.backgroundImage = '';
+  preview.style.backgroundPosition = $('#heroPosition').value;
+  if (mode === 'photo') {
+    const src = heroPreviewUrl || (validPath(path) ? path : '');
+    if (src) preview.style.backgroundImage = `linear-gradient(90deg,rgba(36,29,23,.54),rgba(36,29,23,.05)),url(${JSON.stringify(src)})`;
+    $('#heroPreviewText').textContent = src ? 'FABRIC FOR A BRIGHTER TOMORROW' : '배너 사진을 선택하세요';
+    help.textContent = pendingHeroFile ? `선택된 파일: ${pendingHeroFile.filename} · 배너 사진 다운로드 후 GitHub에 올려주세요.` : 'GitHub에 이미 올린 사진은 이미지 경로만 입력해도 됩니다.';
+  } else if (mode === 'plain') {
+    $('#heroPreviewText').textContent = 'FABRIC FOR A BRIGHTER TOMORROW';
+  } else if (mode === 'hidden') {
+    $('#heroPreviewText').textContent = '메인 배너를 숨깁니다. 카테고리가 바로 표시됩니다.';
+  } else {
+    $('#heroPreviewText').textContent = '기존 메인 배너 디자인 유지';
+  }
+}
+$('#heroMode').addEventListener('change', updateHeroPreview);
+$('#heroPosition').addEventListener('change', updateHeroPreview);
+$('#heroPath').addEventListener('input', () => {
+  // Manually typed paths should preview the entered file, not an earlier local selection.
+  if (pendingHeroFile && $('#heroPath').value.trim() !== pendingHeroFile.filename) {
+    pendingHeroFile = null;
+    $('#downloadHero').disabled = true;
+    if (heroPreviewUrl) URL.revokeObjectURL(heroPreviewUrl);
+    heroPreviewUrl = null;
+  }
+  updateHeroPreview();
+});
+$('#heroFile').addEventListener('change', () => {
+  const file = $('#heroFile').files?.[0];
+  if (!file) return;
+  const extensions = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'};
+  const ext = extensions[file.type];
+  if (!ext || file.size > 10 * 1024 * 1024) {
+    alert('10MB 이하의 JPG, PNG 또는 WEBP 사진을 선택하세요.');
+    $('#heroFile').value = ''; return;
+  }
+  const filename = `hero-banner.${ext}`;
+  pendingHeroFile = {file,filename};
+  if (heroPreviewUrl) URL.revokeObjectURL(heroPreviewUrl);
+  heroPreviewUrl = URL.createObjectURL(file);
+  $('#heroPath').value = filename;
+  $('#heroMode').value = 'photo';
+  $('#downloadHero').disabled = false;
+  updateHeroPreview();
+});
+$('#downloadHero').addEventListener('click', () => {
+  if (pendingHeroFile) downloadBlob(pendingHeroFile.file, pendingHeroFile.filename);
+});
 function coverCard(cat) {
   const box = document.createElement('section'); box.className = 'admin-cover';
   const img = document.createElement('img'); img.alt = cat.label + ' 대표 이미지 미리보기';
@@ -106,9 +181,11 @@ async function init() {
       if (data && typeof data === 'object') {
         settings.covers = data.covers && typeof data.covers === 'object' ? {...data.covers} : {};
         settings.assignments = data.assignments && typeof data.assignments === 'object' ? {...data.assignments} : {};
+        settings.hero = data.hero && typeof data.hero === 'object' ? {...data.hero} : {mode:'original',image:'',position:'center'};
       }
     }
   } catch (e) { console.warn('No saved settings found:', e); }
+  renderHeroEditor();
   renderCovers();
   try {
     const response = await fetch('/api/instagram');
@@ -131,10 +208,18 @@ $('#downloadConfig').addEventListener('click', () => {
     if (value && !validPath(value)) { alert(cat.label + ' 이미지 경로를 확인하세요.'); return; }
     if (value) settings.covers[cat.key] = value; else delete settings.covers[cat.key];
   }
-  const clean = {covers:{},assignments:{}};
+  const hero = {
+    mode: $('#heroMode').value,
+    image: $('#heroPath').value.trim(),
+    position: $('#heroPosition').value
+  };
+  if (!HERO_MODES.includes(hero.mode) || !HERO_POSITIONS.includes(hero.position)) { alert('배너 설정을 확인하세요.'); return; }
+  if (hero.mode === 'photo' && (!hero.image || !validPath(hero.image))) { alert('배너 사진을 선택하거나 올바른 이미지 경로를 입력하세요.'); return; }
+  if (hero.image && !validPath(hero.image)) { alert('배너 이미지 경로를 확인하세요.'); return; }
+  const clean = {covers:{},assignments:{},hero};
   for (const cat of cats) if (settings.covers[cat.key]) clean.covers[cat.key] = settings.covers[cat.key];
   for (const [id,cat] of Object.entries(settings.assignments)) if (/^\d{5,40}$/.test(id) && cats.some(c => c.key === cat)) clean.assignments[id] = cat;
   downloadBlob(new Blob([JSON.stringify(clean,null,2)+'\n'],{type:'application/json;charset=utf-8'}),'category-config.json');
-  if (Object.keys(pendingCoverFiles).length) alert('설정 파일을 저장했습니다. 대표 이미지 다운로드 버튼으로 사진도 저장한 뒤, 사진과 JSON 파일을 GitHub에 업로드하세요.');
+  if (Object.keys(pendingCoverFiles).length || (hero.mode === 'photo' && pendingHeroFile)) alert('설정 파일을 다운로드했습니다. 선택한 사진도 각각 다운로드한 뒤 사진 파일과 JSON 파일을 GitHub에 업로드하세요.');
 });
 init();

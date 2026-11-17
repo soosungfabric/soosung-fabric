@@ -7,7 +7,9 @@ let fabrics = [];
 let current = 'all';
 let activeImages = [];
 let activeImageIndex = 0;
-let showroomConfig = { covers: {}, assignments: {} };
+let showroomConfig = { covers: {}, assignments: {}, hero: { mode: 'original', image: '', position: 'center' } };
+const HERO_MODES = ['original','photo','plain','hidden'];
+const HERO_POSITIONS = ['center','left','right','top','bottom'];
 const CATEGORY_KEYS = ['knit', 'jersey', 'woven', 'etc'];
 
 function normalizeConfig(data) {
@@ -22,9 +24,27 @@ function normalizeConfig(data) {
       if (/^\d{5,40}$/.test(id) && CATEGORY_KEYS.includes(cat)) assignments[id] = cat;
     }
   }
-  return { covers, assignments };
+  const rawHero = data?.hero && typeof data.hero === 'object' ? data.hero : {};
+  const mode = HERO_MODES.includes(rawHero.mode) ? rawHero.mode : 'original';
+  const image = typeof rawHero.image === 'string' && /^(https:\/\/|[a-zA-Z0-9][a-zA-Z0-9._/-]*$)/.test(rawHero.image) && !rawHero.image.includes('..') ? rawHero.image : '';
+  const position = HERO_POSITIONS.includes(rawHero.position) ? rawHero.position : 'center';
+  return { covers, assignments, hero: {mode, image, position} };
 }
 
+function applyHeroConfig() {
+  const hero = document.querySelector('.hero');
+  if (!hero) return;
+  const {mode, image, position} = showroomConfig.hero;
+  const effectiveMode = mode === 'photo' && !image ? 'original' : mode;
+  hero.classList.remove('hero-photo','hero-plain','hero-hidden');
+  hero.style.removeProperty('--hero-image');
+  hero.style.removeProperty('--hero-position');
+  if (effectiveMode !== 'original') hero.classList.add('hero-' + effectiveMode);
+  if (effectiveMode === 'photo') {
+    hero.style.setProperty('--hero-image', `url(${JSON.stringify(image)})`);
+    hero.style.setProperty('--hero-position', position);
+  }
+}
 function applyCategoryCovers() {
   document.querySelectorAll('.categories .cat[data-filter]').forEach(button => {
     const url = showroomConfig.covers[button.dataset.filter];
@@ -41,9 +61,10 @@ async function loadShowroomConfig() {
     showroomConfig = normalizeConfig(await response.json());
   } catch (error) {
     console.warn('Using default category settings:', error);
-    showroomConfig = { covers: {}, assignments: {} };
+    showroomConfig = { covers: {}, assignments: {}, hero: {mode:'original',image:'',position:'center'} };
   }
   applyCategoryCovers();
+  applyHeroConfig();
 }
 
 

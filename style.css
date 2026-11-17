@@ -35,3 +35,23 @@
 .admin-status{font-size:13px;min-height:18px}
 @media(max-width:850px){.admin-covers,.admin-posts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.admin-wrap{padding:20px 12px 60px}.admin-covers,.admin-posts{grid-template-columns:1fr 1fr;gap:8px}.admin-cover{padding:8px}.admin-cover img{height:100px}.admin-wrap h1{font-size:29px}}
+
+/* Main hero banner modes, controlled by category-config.json */
+.hero.hero-photo{background-image:linear-gradient(90deg,rgba(39,31,25,.66),rgba(39,31,25,.1)),var(--hero-image);background-size:cover;background-position:var(--hero-position,center);background-repeat:no-repeat}
+.hero.hero-photo .hero-art,.hero.hero-plain .hero-art{display:none}
+.hero.hero-plain{background:#8f7e6c}
+.hero.hero-hidden{display:none}
+/* Main hero editor */
+.admin-hero-panel{border:1px solid #ded5ca;background:#fff;padding:18px;max-width:100%}
+.admin-hero-panel label{display:block;font-size:13px;margin:10px 0 7px}
+.admin-hero-panel input[type=file],.admin-hero-panel input[type=text],.admin-hero-panel select{display:block;width:100%;max-width:560px;border:1px solid #d4cec4;background:#fff;padding:10px;font:inherit;font-size:13px}
+.admin-hero-panel input[type=file]{border:0;padding-left:0}
+.admin-hero-panel .admin-secondary{margin-top:14px}
+.admin-hero-preview{margin:16px 0;aspect-ratio:3.1/1;min-height:150px;display:flex;align-items:center;padding:24px 5%;background:linear-gradient(115deg,#716455,#b6a18a 45%,#ded1bd);background-size:cover;background-position:center;color:white;overflow:hidden}
+.admin-hero-preview span{font-family:"Playfair Display",serif;font-size:clamp(18px,3vw,32px);max-width:70%;line-height:1.15}
+.admin-hero-preview.mode-hidden{background:#eee8df;color:#60574f;border:1px dashed #c9bdb0;justify-content:center;text-align:center}
+.admin-hero-preview.mode-hidden span{font:13px "DM Sans",sans-serif}
+.admin-hero-preview.mode-plain{background:#8f7e6c}
+.admin-hero-preview.mode-original{background:repeating-linear-gradient(165deg,transparent 0 55px,#e0d2bd 56px 105px,#6b5a4a 106px 119px,transparent 120px 150px),linear-gradient(115deg,#716455,#b6a18a 45%,#ded1bd)}
+.admin-hero-fields[hidden]{display:none}
+@media(max-width:520px){.admin-hero-preview{aspect-ratio:2/1;padding:16px}.admin-hero-preview span{max-width:100%}}

@@ -21,7 +21,7 @@ let next = `https://graph.facebook.com/v26.0/17841462395203093/media?fields=${en
       images: p.media_type === 'CAROUSEL_ALBUM' ? (p.children?.data || []).filter(c => c.media_url || c.thumbnail_url).map(c => c.media_url || c.thumbnail_url) : [],
       permalink: p.permalink, timestamp: p.timestamp
     })).filter(p => p.image);
-    res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=3600');
     return res.status(200).json({ posts });
   } catch (err) {
     console.error('Instagram API failed:', err.message);

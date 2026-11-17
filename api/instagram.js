@@ -4,8 +4,8 @@ export default async function handler(req, res) {
   const token = process.env.INSTAGRAM_ACCESS_TOKEN;
   if (!token) return res.status(503).json({ error: 'Instagram access token is not configured' });
   try {
-    const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,children{media_type,media_url,thumbnail_url}';
-    let next = `https://graph.instagram.com/me/media?fields=${encodeURIComponent(fields)}&limit=50&access_token=${encodeURIComponent(token)}`;
+    const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,children{media_type,media_url,thumbnail_url}'; 
+let next = `https://graph.facebook.com/v26.0/17841462395203093/media?fields=${encodeURIComponent(fields)}&limit=50&access_token=${encodeURIComponent(token)}`;
     const items = [];
     for (let page = 0; page < 4 && next; page++) {
       const response = await fetch(next, { headers: { Accept: 'application/json' } });

@@ -63,3 +63,58 @@
 .modal-play:hover{background:#171411}
 .modal-play:disabled{cursor:wait;opacity:.8}
 .modal-video{width:100%;height:100%;max-height:75vh;object-fit:contain;background:#151515;position:absolute;inset:0}
+
+/* Mobile video modal: keep the close control visible inside the viewport. */
+@media (max-width: 850px) {
+  .modal.open {
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0;
+    overflow: hidden;
+  }
+  .modal .modal-card {
+    width: 100%;
+    max-width: 820px;
+    height: 100vh; /* fallback for older mobile browsers */
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal .modal-image {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: min(65vh, 520px);
+    height: min(65dvh, 520px);
+  }
+  .modal .modal-info {
+    flex: 0 0 auto;
+    padding: 24px 22px 38px;
+  }
+  .modal #closeModal {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border: 1px solid #e4ded5;
+    border-radius: 50%;
+    background: #fff;
+    color: #24201c;
+    box-shadow: 0 3px 14px rgba(0,0,0,.25);
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+}

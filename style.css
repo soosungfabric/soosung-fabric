@@ -55,3 +55,11 @@
 .admin-hero-preview.mode-original{background:repeating-linear-gradient(165deg,transparent 0 55px,#e0d2bd 56px 105px,#6b5a4a 106px 119px,transparent 120px 150px),linear-gradient(115deg,#716455,#b6a18a 45%,#ded1bd)}
 .admin-hero-fields[hidden]{display:none}
 @media(max-width:520px){.admin-hero-preview{aspect-ratio:2/1;padding:16px}.admin-hero-preview span{max-width:100%}}
+
+/* Instagram VIDEO / Reels support */
+.video-badge{position:absolute;right:12px;top:12px;padding:7px 11px;border-radius:3px;background:#171717bd;color:#fff;font-size:11px;letter-spacing:.06em;pointer-events:none}
+.modal-image{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.modal-play{border:1px solid #ffffffb0;border-radius:100px;padding:13px 22px;background:#211e1dc9;color:white;font:600 14px "DM Sans",sans-serif;cursor:pointer;box-shadow:0 4px 20px #0005;z-index:1}
+.modal-play:hover{background:#171411}
+.modal-play:disabled{cursor:wait;opacity:.8}
+.modal-video{width:100%;height:100%;max-height:75vh;object-fit:contain;background:#151515;position:absolute;inset:0}

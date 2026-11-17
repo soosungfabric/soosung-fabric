@@ -7,6 +7,8 @@ let fabrics = [];
 let current = 'all';
 let activeImages = [];
 let activeImageIndex = 0;
+let activePost = null;
+let mediaRequestId = 0;
 let showroomConfig = { covers: {}, assignments: {}, hero: { mode: 'original', image: '', position: 'center' } };
 const HERO_MODES = ['original','photo','plain','hidden'];
 const HERO_POSITIONS = ['center','left','right','top','bottom'];
@@ -95,6 +97,12 @@ function render() {
     swatch.style.backgroundImage = `url(${JSON.stringify(f.image)})`;
     swatch.style.backgroundSize = 'cover';
     swatch.style.backgroundPosition = 'center';
+    if (f.mediaType === 'VIDEO') {
+      const videoBadge = document.createElement('span');
+      videoBadge.className = 'video-badge';
+      videoBadge.textContent = '▶  VIDEO';
+      swatch.append(videoBadge);
+    }
     const heading = document.createElement('h3');
     heading.textContent = f.name;
     const desc = document.createElement('p');
@@ -106,9 +114,22 @@ function render() {
   }
   if (result) result.textContent = `${rows.length} fabric${rows.length === 1 ? '' : 's'} shown`;
 }
+function setModalStatus(message) {
+  const el = document.querySelector('#igImageCounter');
+  if (el) el.textContent = message;
+}
+function stopModalVideo() {
+  const el = document.querySelector('#modalImage');
+  if (!el) return;
+  const video = el.querySelector('video');
+  if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.remove(); }
+}
 function showModalImage() {
   const el = document.querySelector('#modalImage');
   if (!el) return;
+  mediaRequestId++;
+  stopModalVideo();
+  el.replaceChildren();
   el.style.backgroundImage = `url(${JSON.stringify(activeImages[activeImageIndex])})`;
   el.style.backgroundColor = '#f2f0eb';
   el.style.backgroundSize = 'contain';
@@ -122,8 +143,61 @@ function showModalImage() {
     el.insertAdjacentElement('afterend', counter);
   }
   counter.textContent = activeImages.length > 1 ? `${activeImageIndex + 1} / ${activeImages.length}  ·  ← → 키로 이동` : '';
+  // VIDEO media is shown as a poster until the visitor chooses to play.
+  // For carousel albums, retain the existing image navigation behavior.
+  if (activePost?.mediaType === 'VIDEO' && activeImageIndex === 0) {
+    const play = document.createElement('button');
+    play.type = 'button';
+    play.className = 'modal-play';
+    play.textContent = '▶ 영상 재생';
+    play.setAttribute('aria-label', '인스타그램 영상 재생');
+    play.addEventListener('click', () => playInstagramVideo(activePost));
+    el.append(play);
+  }
+}
+async function playInstagramVideo(post) {
+  const el = document.querySelector('#modalImage');
+  if (!el || !modal?.classList.contains('open')) return;
+  const requestId = ++mediaRequestId;
+  const play = el.querySelector('.modal-play');
+  if (play) { play.disabled = true; play.textContent = '영상 불러오는 중…'; }
+  try {
+    const response = await fetch(`/api/instagram-video?id=${encodeURIComponent(post.code)}`);
+    if (!response.ok) throw new Error(`Video API ${response.status}`);
+    const data = await response.json();
+    if (!data.videoUrl || !/^https:\/\//i.test(data.videoUrl)) throw new Error('No playable URL');
+    if (requestId !== mediaRequestId || !modal?.classList.contains('open')) return;
+    const video = document.createElement('video');
+    video.className = 'modal-video';
+    video.controls = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.preload = 'metadata';
+    video.src = data.videoUrl;
+    video.addEventListener('error', () => {
+      setModalStatus('영상 재생이 제한되었습니다. 아래 Instagram 원본 게시물 보기로 시청해 주세요.');
+    });
+    el.style.backgroundImage = 'none';
+    el.replaceChildren(video);
+    setModalStatus('영상 재생 중 · 재생되지 않으면 Instagram 원본 게시물에서 확인해 주세요.');
+    video.play().catch(() => { video.autoplay = false; });
+  } catch (error) {
+    if (requestId !== mediaRequestId) return;
+    console.warn('Instagram video playback unavailable:', error);
+    if (play) { play.disabled = false; play.textContent = 'Instagram에서 영상 보기 ↗';
+      play.onclick = () => window.open(post.permalink || 'https://www.instagram.com/soosung_fabric/', '_blank', 'noopener,noreferrer');
+    }
+    setModalStatus('이 영상은 직접 재생할 수 없어 Instagram 원본에서 볼 수 있습니다.');
+  }
+}
+function closeFabricModal() {
+  mediaRequestId++;
+  stopModalVideo();
+  modal?.classList.remove('open');
+  modal?.setAttribute('aria-hidden', 'true');
 }
 function openFabric(f) {
+  activePost = f;
   activeImages = f.images.length ? f.images : [f.image];
   activeImageIndex = 0;
   showModalImage();
@@ -143,6 +217,7 @@ function openFabric(f) {
   }
   link.href = f.permalink || 'https://www.instagram.com/soosung_fabric/';
   modal?.classList.add('open');
+  modal?.setAttribute('aria-hidden', 'false');
 }
 document.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
   current = b.dataset.filter;
@@ -151,11 +226,11 @@ document.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('clic
   render();
 }));
 search?.addEventListener('input', render);
-document.querySelector('#closeModal')?.addEventListener('click', () => modal?.classList.remove('open'));
-modal?.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+document.querySelector('#closeModal')?.addEventListener('click', closeFabricModal);
+modal?.addEventListener('click', e => { if (e.target === modal) closeFabricModal(); });
 document.addEventListener('keydown', e => {
   if (!modal?.classList.contains('open')) return;
-  if (e.key === 'Escape') modal.classList.remove('open');
+  if (e.key === 'Escape') closeFabricModal();
   if (activeImages.length > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
     activeImageIndex = (activeImageIndex + (e.key === 'ArrowRight' ? 1 : -1) + activeImages.length) % activeImages.length;
     showModalImage();
@@ -172,7 +247,7 @@ async function loadInstagram() {
       return {
         code: p.id, name: desc.split('\n').find(Boolean)?.slice(0, 65) || `Instagram Post ${i + 1}`,
         cat: showroomConfig.assignments[String(p.id)] || category(desc), desc: desc.slice(0, 240) || 'SOOSUNG FABRIC',
-        image: p.image, images: p.images || [], permalink: p.permalink,
+        image: p.image, images: p.images || [], mediaType: p.mediaType || p.media_type || 'IMAGE', permalink: p.permalink,
         date: p.timestamp ? new Date(p.timestamp).toLocaleDateString('ko-KR') : ''
       };
     });
